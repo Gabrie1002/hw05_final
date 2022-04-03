@@ -212,7 +212,7 @@ class PostPagesTest(TestCase):
             author=another_user
         ).delete()
         self.assertFalse(Follow.objects.filter(author=another_user).exists())
-    
+
     def test_follow_index_show_context(self):
         another = User.objects.create_user(username='another')
         Post.objects.create(
