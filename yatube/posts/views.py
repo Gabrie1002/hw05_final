@@ -19,7 +19,7 @@ def page_list(set, request):
 
 
 def index(request):
-    page_obj = page_list(Post.objects.order_by('-created'), request)
+    page_obj = page_list(Post.objects.all(), request)
     context = {
         'page_obj': page_obj,
     }
@@ -28,7 +28,7 @@ def index(request):
 
 def group_posts(request, slug):
     group = get_object_or_404(Group, slug=slug)
-    page_obj = page_list(group.posts.all().order_by('-created'), request)
+    page_obj = page_list(group.posts.all(), request)
     context = {
         'group': group,
         'page_obj': page_obj,
@@ -38,11 +38,8 @@ def group_posts(request, slug):
 
 def profile(request, username):
     user = get_object_or_404(User, username=username)
-    page_obj = page_list(user.posts.all().order_by('-created'), request)
-    if not Follow.objects.filter(author=user).exists():
-        following = False
-    else:
-        following = True
+    page_obj = page_list(user.posts.all(), request)
+    following = Follow.objects.filter(author=user).exists()
     context = {
         'author': user,
         'page_obj': page_obj,
@@ -113,9 +110,8 @@ def add_comment(request, post_id):
 @login_required
 def follow_index(request):
     user = request.user
-    follow = Follow.objects.filter(user=user).values('author')
-    page_obj = page_list(
-        Post.objects.filter(author__in=follow).order_by('-created'), request)
+    follow = Post.objects.filter(author__following__user=user)
+    page_obj = page_list(follow, request)
     context = {
         'page_obj': page_obj,
     }

@@ -186,49 +186,6 @@ class PostPagesTest(TestCase):
         form_field = response.context['post'].image.name
         self.assertEqual(form_field, 'posts/small.gif')
 
-    def test_cache(self):
-        post_obj = Post.objects.create(
-            text='simple text',
-            author=self.user,
-        )
-        response = self.client.get(reverse('posts:index')).content
-        post_obj.delete()
-        new = self.client.get(reverse('posts:index')).content
-        self.assertEqual(response, new)
-        cache.clear()
-        self.assertNotEqual(
-            response,
-            self.client.get(reverse('posts:index')).content
-        )
-
-    def test_user_can_follow_unfollow(self):
-        another_user = User.objects.create_user(username='another')
-        Follow.objects.create(
-            author=another_user,
-            user=self.user
-        )
-        self.assertTrue(Follow.objects.filter(author=another_user).exists())
-        Follow.objects.filter(
-            author=another_user
-        ).delete()
-        self.assertFalse(Follow.objects.filter(author=another_user).exists())
-
-    def test_follow_index_show_context(self):
-        another = User.objects.create_user(username='another')
-        Post.objects.create(
-            text='test',
-            author=another
-        )
-        Follow.objects.create(
-            author=another,
-            user=self.user
-        )
-        response = self.authorized_client.get(reverse(
-            'posts:follow_index'
-        ))
-        get = response.context['post'].text
-        self.assertEqual(get, 'test')
-
 
 class PaginatorTest(TestCase):
     @classmethod
@@ -296,3 +253,108 @@ class PaginatorTest(TestCase):
             'posts:profile', kwargs={'username': self.user_name}
         ) + '?page=2')
         self.assertEqual(len(response.context['page_obj']), self.SECOND_PAGE)
+
+
+class CacheTest(TestCase):
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.group_title = 'Test Group'
+        cls.group_slug = 'testslug'
+        cls.group_description = 'Test'
+        cls.post_text = 'Test Text'
+        cls.user_name = 'CacheName'
+        cls.user = User.objects.create_user(username=cls.user_name)
+        Post.objects.create(
+            text=cls.post_text,
+            author=cls.user,
+        )
+
+    def setUp(self):
+        self.guest_client = Client()
+        self.authorized_client = Client()
+        self.authorized_client.force_login(self.user)
+
+    def test_cache(self):
+        post_obj = Post.objects.create(
+            text='simple text',
+            author=self.user,
+        )
+        response = self.client.get(reverse('posts:index')).content
+        post_obj.delete()
+        new = self.client.get(reverse('posts:index')).content
+        self.assertEqual(response, new)
+        cache.clear()
+        self.assertNotEqual(
+            response,
+            self.client.get(reverse('posts:index')).content
+        )
+
+
+class FollowTest(TestCase):
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.group_title = 'Test Group'
+        cls.group_slug = 'testslug'
+        cls.group_description = 'Test'
+        cls.post_text = 'Test Text'
+        cls.user_name = 'FollowName'
+        cls.user = User.objects.create_user(username=cls.user_name)
+        cls.another = User.objects.create_user(username='another')
+        Post.objects.create(
+            text=cls.post_text,
+            author=cls.user,
+        )
+
+    def setUp(self):
+        self.guest_client = Client()
+        self.authorized_client = Client()
+        self.authorized_client.force_login(self.user)
+
+    def test_user_can_follow(self):
+        Follow.objects.create(
+            author=self.another,
+            user=self.user
+        )
+        self.assertTrue(Follow.objects.filter(author=self.another).exists())
+
+    def test_user_can_unfollow(self):
+        Follow.objects.create(
+            author=self.another,
+            user=self.user
+        )
+        Follow.objects.filter(
+            author=self.another
+        ).delete()
+        self.assertFalse(Follow.objects.filter(author=self.another).exists())
+
+    def test_follow_index_show_context(self):
+        Post.objects.create(
+            text='test',
+            author=self.another
+        )
+        Follow.objects.create(
+            author=self.another,
+            user=self.user
+        )
+        response = self.authorized_client.get(reverse(
+            'posts:follow_index'
+        ))
+        get = response.context['post'].text
+        self.assertEqual(get, 'test')
+
+    def test_follow_index_context(self):
+        Follow.objects.filter(
+            author=self.another,
+            user=self.user
+        ).delete()
+        response = self.authorized_client.get(reverse(
+            'posts:follow_index'
+        ))
+        response_another = self.authorized_client.get(reverse(
+            'posts:profile', kwargs={'username': self.user_name}
+        ))
+        get = response.context['page_obj'].object_list
+        posts_another = response_another.context['page_obj'].object_list
+        self.assertNotEqual(get, posts_another)

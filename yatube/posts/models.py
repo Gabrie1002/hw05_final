@@ -39,6 +39,9 @@ class Post(CreatedModel):
     def __str__(self):
         return f'{self.text[:15]}'
 
+    class Meta:
+        ordering = ['-created']
+
 
 class Comment(CreatedModel):
     post = models.ForeignKey(

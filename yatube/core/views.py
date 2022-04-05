@@ -9,5 +9,5 @@ def csrf_failure(request, reason=''):
     return render(request, 'core/403csrf.html')
 
 
-def page_500(request, exception):
+def page_500(request, reason=''):
     return render(request, 'core/500.html', {'path': request.path}, status=500)
