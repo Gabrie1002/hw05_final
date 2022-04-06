@@ -313,20 +313,15 @@ class FollowTest(TestCase):
         self.authorized_client.force_login(self.user)
 
     def test_user_can_follow(self):
-        Follow.objects.create(
-            author=self.another,
-            user=self.user
-        )
+        self.authorized_client.get(reverse(
+            'posts:profile_follow', kwargs={'username': self.another}
+        ))
         self.assertTrue(Follow.objects.filter(author=self.another).exists())
 
     def test_user_can_unfollow(self):
-        Follow.objects.create(
-            author=self.another,
-            user=self.user
-        )
-        Follow.objects.filter(
-            author=self.another
-        ).delete()
+        self.authorized_client.get(reverse(
+            'posts:profile_unfollow', kwargs={'username': self.another}
+        ))
         self.assertFalse(Follow.objects.filter(author=self.another).exists())
 
     def test_follow_index_show_context(self):
