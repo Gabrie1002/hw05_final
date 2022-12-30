@@ -144,5 +144,4 @@ dmypy.json
 .history/
 
 .mypy_cache
-static/
 media/
